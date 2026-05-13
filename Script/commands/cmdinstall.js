@@ -5,80 +5,134 @@ const vm = require("vm");
 
 module.exports.config = {
   name: "install",
-  version: "2.0.0",
+  version: "4.0.0",
   hasPermssion: 2,
   credits: "SHAHADAT SAHU",
-  description: "Create/Delete/Load modules",
+  description: "Auto Reload Command Installer",
   commandCategory: "System",
-  usages: "[file.js code/link] / [del file.js]",
+  usages: "[file.js code/link]",
   cooldowns: 0
 };
 
-const loadModule = (nameModule) => {
+const loadCommand = (moduleName) => {
   try {
-    const p = __dirname + "/" + nameModule + ".js";
-    delete require.cache[require.resolve(p)];
-    const c = require(p);
-    if (!c.config || !c.run) throw new Error();
-    global.client.commands.delete(c.config.name);
-    global.client.eventRegistered = global.client.eventRegistered.filter(e => e != c.config.name);
-    global.client.commands.set(c.config.name, c);
+    const modulePath = path.join(__dirname, moduleName + ".js");
+
+    delete require.cache[require.resolve(modulePath)];
+
+    const command = require(modulePath);
+
+    if (!command.config || !command.run)
+      throw new Error("Invalid command structure");
+
+    global.client.commands.delete(command.config.name);
+
+    global.client.eventRegistered =
+      global.client.eventRegistered.filter(
+        item => item !== command.config.name
+      );
+
+    global.client.commands.set(command.config.name, command);
+
     return true;
-  } catch {
+  } catch (e) {
+    console.log(e);
     return false;
   }
 };
 
-const unloadModule = (nameModule) => {
-  global.client.commands.delete(nameModule);
-  global.client.eventRegistered = global.client.eventRegistered.filter(e => e !== nameModule);
-};
-
 module.exports.run = async ({ api, event, args }) => {
-  const { threadID, messageID } = event;
+  const { threadID, messageID, messageReply } = event;
 
-  if (!args[0]) return api.sendMessage("⚠️ Usage: install file.js code/link", threadID, messageID);
-
-  if (args[0] === "del") {
-    const file = args[1];
-    if (!file || !file.endsWith(".js")) return api.sendMessage("Invalid file.....", threadID, messageID);
-    const fp = path.join(__dirname, file);
-    if (!fs.existsSync(fp)) return api.sendMessage("File not found.....", threadID, messageID);
-    unloadModule(file.replace(".js", ""));
-    fs.unlinkSync(fp);
-    return api.sendMessage("🗑️ Deleted + Unloaded: " + file, threadID, messageID);
+  if (!args[0]) {
+    return api.sendMessage(
+      "⚠️ Usage:\n/install cmd.js + reply code\n/install cmd.js code\n/install cmd.js link",
+      threadID,
+      messageID
+    );
   }
 
   const fileName = args[0];
-  const content = args.slice(1).join(" ");
-  if (!fileName.endsWith(".js")) return api.sendMessage("Only .js allowed...⚠️", threadID, messageID);
 
-  const fp = path.join(__dirname, fileName);
-  if (fs.existsSync(fp)) return api.sendMessage("File already exists...⚠️", threadID, messageID);
-
-  let code;
-  if (/^(http|https):\/\//.test(content)) {
-    try {
-      const r = await axios.get(content);
-      code = r.data;
-    } catch {
-      return api.sendMessage("❌ Failed to download code!", threadID, messageID);
-    }
-  } else {
-    code = content;
+  if (!fileName.endsWith(".js")) {
+    return api.sendMessage(
+      "❌ Only .js file allowed!",
+      threadID,
+      messageID
+    );
   }
 
+  let code = "";
+
+  // REPLY CODE
+  if (messageReply && messageReply.body) {
+    code = messageReply.body;
+  }
+
+  // ARG CODE / LINK
+  else if (args.slice(1).join(" ")) {
+    const input = args.slice(1).join(" ");
+
+    // LINK
+    if (/^(http|https):\/\//.test(input)) {
+      try {
+        const res = await axios.get(input);
+        code = res.data;
+      } catch {
+        return api.sendMessage(
+          "❌ Failed to fetch code!",
+          threadID,
+          messageID
+        );
+      }
+    }
+
+    // DIRECT CODE
+    else {
+      code = input;
+    }
+  }
+
+  else {
+    return api.sendMessage(
+      "❌ No code found!",
+      threadID,
+      messageID
+    );
+  }
+
+  // SYNTAX CHECK
   try {
     new vm.Script(code);
   } catch (err) {
-    return api.sendMessage("❌ Syntax Error: " + err.message, threadID, messageID);
+    return api.sendMessage(
+      "❌ Syntax Error:\n" + err.message,
+      threadID,
+      messageID
+    );
   }
 
-  fs.writeFileSync(fp, code, "utf8");
+  const filePath = path.join(__dirname, fileName);
 
-  const name = fileName.replace(".js", "");
-  const ok = loadModule(name);
-  if (!ok) return api.sendMessage("⚠️ File created but failed to load!", threadID, messageID);
+  // AUTO SAVE
+  fs.writeFileSync(filePath, code, "utf8");
 
-  return api.sendMessage("✅ Successfully Created + Loaded: " + fileName, threadID, messageID);
+  // AUTO RELOAD
+  const moduleName = fileName.replace(".js", "");
+
+  const loaded = loadCommand(moduleName);
+
+  if (!loaded) {
+    return api.sendMessage(
+      "⚠️ Saved but Reload Failed!",
+      threadID,
+      messageID
+    );
+  }
+
+  return api.sendMessage(
+    `✅ Auto Reload Complete:\n📂 ${fileName}`,
+    threadID,
+    messageID
+  );
 };
