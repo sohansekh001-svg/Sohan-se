@@ -1,136 +1,123 @@
 module.exports.config = {
   name: "joinnoti",
   eventType: ["log:subscribe"],
-  version: "1.0.2",
-  credits: "SHAHADAT SAHU",
-  description: "Welcome message with optional image/video",
+  version: "2.0.0",
+  credits: "𝑺𝒐𝒉𝒂𝒏 𝑨𝒉𝒎𝒆𝒅",
+  description: "Ultra stylish welcome message with auto delete",
   dependencies: {
     "fs-extra": "",
     "path": ""
   }
 };
 
-module.exports.onLoad = function () {
-  const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
-  const { join } = global.nodemodule["path"];
-  const paths = [
-    join(__dirname, "cache", "joinGif"),
-    join(__dirname, "cache", "randomgif")
-  ];
-  for (const path of paths) {
-    if (!existsSync(path)) mkdirSync(path, { recursive: true });
-  }
-};
-
 module.exports.run = async function({ api, event }) {
   const fs = require("fs");
   const path = require("path");
-  const { threadID } = event;
-  
+
+  const { threadID, logMessageData } = event;
   const botPrefix = global.config.PREFIX || "/";
   const botName = global.config.BOTNAME || "𝗦𝗵𝗮𝗵𝗮𝗱𝗮𝘁 𝗖𝗵𝗮𝘁 𝗕𝗼𝘁";
 
- 
-  if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-    await api.changeNickname(`[ ${botPrefix} ] • ${botName}`, threadID, api.getCurrentUserID());
+  const addedUsers = logMessageData.addedParticipants;
 
-    api.sendMessage("চ্ঁলে্ঁ এ্ঁসে্ঁছি্ঁ 𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭 এঁখঁনঁ তোঁমাঁদেঁরঁ সাঁথেঁ আঁড্ডাঁ দিঁবঁ..!", threadID, () => {
-      const randomGifPath = path.join(__dirname, "cache", "randomgif");
-      const allFiles = fs.readdirSync(randomGifPath).filter(file =>
-        [".mp4", ".jpg", ".png", ".jpeg", ".gif", ".mp3"].some(ext => file.endsWith(ext))
-      );
+  // 🧠 detect bot add
+  if (addedUsers.some(i => i.userFbId == api.getCurrentUserID())) {
 
-      const selected = allFiles.length > 0 
-        ? fs.createReadStream(path.join(randomGifPath, allFiles[Math.floor(Math.random() * allFiles.length)])) 
-        : null;
+    await api.changeNickname(
+      `🌸 ${botPrefix} • ${botName}`,
+      threadID,
+      api.getCurrentUserID()
+    );
 
-      const messageBody = `╭•┄┅═══❁🌺❁═══┅┄•╮
-     আ্ঁস্ঁসা্ঁলা্ঁমু্ঁ💚আ্ঁলা্ঁই্ঁকু্ঁম্ঁ
-╰•┄┅═══❁🌺❁═══┅┄•╯
+    const botMsg = `
+🌸══════════════════════🌸
+        🤖 𝗕𝗢𝗧 𝗝𝗢𝗜𝗡𝗘𝗗
+🌸══════════════════════🌸
 
-𝐓𝐡𝐚𝐧𝐤 𝐲𝐨𝐮 𝐬𝐨 𝐦𝐮𝐜𝐡 𝐟𝐨𝐫 𝐚𝐝𝐝𝐢𝐧𝐠 𝐦𝐞 𝐭𝐨 𝐲𝐨𝐮𝐫 𝐢-𝐠𝐫𝐨𝐮𝐩-🖤🤗
-𝐈 𝐰𝐢𝐥𝐥 𝐚𝐥𝐰𝐚𝐲𝐬 𝐬𝐞𝐫𝐯𝐞 𝐲𝐨𝐮 𝐢𝐧𝐚𝐡𝐚𝐥𝐥𝐚𝐡 🌺❤️
+✨ ধন্যবাদ আমাকে যোগ করার জন্য!
+🌺 এখন থেকে আমি তোমাদের সাথে আছি
 
-𝐓𝐨 𝐯𝐢𝐞𝐰 𝐚𝐧𝐲 𝐜𝐨𝐦𝐦𝐚𝐧𝐝:
-${botPrefix}Help
-${botPrefix}Info
-${botPrefix}Admin
+⚡ Commands:
+➤ ${botPrefix}help
+➤ ${botPrefix}info
+➤ ${botPrefix}admin
 
-★ যেকোনো অভিযোগ অথবা হেল্প এর জন্য এডমিন 𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 কে নক করতে পারেন ★
-➤𝐌𝐞𝐬𝐬𝐞𝐧𝐠𝐞𝐫: https://m.me/100001039692046
-➤𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩: https://wa.me/100001039692046
+💌 Contact:
+🔗 m.me/100001039692046
+📱 wa.me/100001039692046
 
-❖⋆═══════════════════════⋆❖
-          𝐁𝐨𝐭 𝐎𝐰𝐧𝐞𝐫 ➢ 𝐒𝐇𝐀𝐇𝐀𝐃𝐀𝐓 𝐒𝐀𝐇𝐔`;
+🌸══════════════════════🌸
+   🤖 ${botName}
+🌸══════════════════════🌸
+`;
 
-      if (selected) {
-        api.sendMessage({ body: messageBody, attachment: selected }, threadID);
-      } else {
-        api.sendMessage(messageBody, threadID);
-      }
-    });
+    const msg = await api.sendMessage(botMsg, threadID);
+
+    // ⏳ auto delete after 1 minute
+    setTimeout(() => {
+      api.unsendMessage(msg.messageID);
+    }, 60000);
 
     return;
   }
 
- 
   try {
-    const { createReadStream, readdirSync } = global.nodemodule["fs-extra"];
     let { threadName, participantIDs } = await api.getThreadInfo(threadID);
     const threadData = global.data.threadData.get(parseInt(threadID)) || {};
-    let mentions = [], nameArray = [], memLength = [], i = 0;
 
-    for (let id in event.logMessageData.addedParticipants) {
-      const userName = event.logMessageData.addedParticipants[id].fullName;
-      nameArray.push(userName);
-      mentions.push({ tag: userName, id });
-      memLength.push(participantIDs.length - i++);
+    let mentions = [];
+    let nameList = [];
+
+    for (let user of addedUsers) {
+      nameList.push(user.fullName);
+      mentions.push({
+        tag: user.fullName,
+        id: user.userFbId
+      });
     }
-    memLength.sort((a, b) => a - b);
 
-    let msg = (typeof threadData.customJoin === "undefined") ? `╭•┄┅═══❁🌺❁═══┅┄•╮
-     আ্ঁস্ঁসা্ঁলা্ঁমু্ঁ💚আ্ঁলা্ঁই্ঁকু্ঁম্ঁ
-╰•┄┅═══❁🌺❁═══┅┄•╯
-হাসি, মজা, ঠাট্টায় গড়ে উঠুক  
-চিরস্থায়ী বন্ধুত্বের বন্ধন।🥰
-ভালোবাসা ও সম্পর্ক থাকুক আজীবন।💝
+    const names = nameList.join(", ");
 
-➤ আশা করি আপনি এখানে হাসি-মজা করে 
-আড্ডা দিতে ভালোবাসবেন।😍
-➤ সবার সাথে মিলেমিশে থাকবেন।😉
-➤ উস্কানিমূলক কথা বা খারাপ ব্যবহার করবেন না।🚫
-➤ গ্রুপ এডমিনের কথা শুনবেন ও রুলস মেনে চলবেন।✅
+    const msg = `
+🌸━━━━━━━━━━━━━━━━━━━━🌸
+        💐 𝗪𝗘𝗟𝗖𝗢𝗠𝗘 𝗖𝗔𝗥𝗗
+🌸━━━━━━━━━━━━━━━━━━━━🌸
 
-›› প্রিয় {name},  
-আপনি এই গ্রুপের {soThanhVien} নম্বর মেম্বার!
+✨ হ্যালো ${names}
+🌷 তোমাকে স্বাগতম এই গ্রুপে!
 
-›› গ্রুপ: {threadName}
+🌺 এখানে ভালোবাসা, বন্ধুত্ব আর হাসি-মজা থাকবে
+🌼 সবাইকে সম্মান করে চলবে
 
-💌 🌺 𝐖 𝐄 𝐋 𝐂 𝐎 𝐌 𝐄 🌺 💌
-╭─╼╾─╼🌸╾─╼╾───╮
-   ─꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭 🌺
-╰───╼╾─╼🌸╾─╼╾─╯
+━━━━━━━━━━━━━━━━━━━━
+💠 গ্রুপ: ${threadName}
+💠 সদস্য সংখ্যা: ${participantIDs.length}
 
-❖⋆══════════════════════════⋆❖` : threadData.customJoin;
+🌸━━━━━━━━━━━━━━━━━━━━🌸
+   ⚡ 𝗗𝗜𝗚𝗜𝗧𝗔𝗟 𝗪𝗘𝗟𝗖𝗢𝗠𝗘 ⚡
+🌸━━━━━━━━━━━━━━━━━━━━🌸
+`;
 
-    msg = msg
-      .replace(/\{name}/g, nameArray.join(', '))
-      .replace(/\{soThanhVien}/g, memLength.join(', '))
-      .replace(/\{threadName}/g, threadName);
+    const joinPath = path.join(__dirname, "cache", "joinGif");
+    const files = fs.existsSync(joinPath) ? fs.readdirSync(joinPath) : [];
 
-    const joinGifPath = path.join(__dirname, "cache", "joinGif");
-    const files = readdirSync(joinGifPath).filter(file =>
-      [".mp4", ".jpg", ".png", ".jpeg", ".gif", ".mp3"].some(ext => file.endsWith(ext))
-    );
-    const randomFile = files.length > 0 
-      ? createReadStream(path.join(joinGifPath, files[Math.floor(Math.random() * files.length)])) 
+    const randomFile = files.length
+      ? fs.createReadStream(path.join(joinPath, files[Math.floor(Math.random() * files.length)]))
       : null;
 
-    return api.sendMessage(
-      randomFile ? { body: msg, attachment: randomFile, mentions } : { body: msg, mentions },
+    const sent = await api.sendMessage(
+      randomFile
+        ? { body: msg, attachment: randomFile, mentions }
+        : { body: msg, mentions },
       threadID
     );
-  } catch (e) {
-    console.error(e);
+
+    // ⏳ auto delete after 1 minute
+    setTimeout(() => {
+      api.unsendMessage(sent.messageID);
+    }, 60000);
+
+  } catch (err) {
+    console.log(err);
   }
 };
