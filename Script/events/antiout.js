@@ -1,27 +1,66 @@
 module.exports.config = {
- name: "antiout",
- eventType: ["log:unsubscribe"],
- version: "0.0.1",
- credits: "𝐂𝐘𝐁𝐄𝐑 ☢️_𖣘 -𝐁𝐎𝐓 ⚠️ 𝑻𝑬𝑨𝑴_ ☢️",
- description: "Listen events"
+  name: "antiout",
+  eventType: ["log:unsubscribe"],
+  version: "1.0.0",
+  credits: "Sohan Sekh + ChatGPT",
+  description: "Anti leave system with voice + stylish message"
 };
 
-module.exports.run = async({ event, api, Threads, Users }) => {
- let data = (await Threads.getData(event.threadID)).data || {};
- if (data.antiout == false) return;
- if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
- const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
- const type = (event.author == event.logMessageData.leftParticipantFbId) ? "self-separation" : "Koi Ase Pichware Mai Lath Marta Hai?";
- if (type == "self-separation") {
-  api.addUserToGroup(event.logMessageData.leftParticipantFbId, event.threadID, (error, info) => {
-   if (error) {
-    api.sendMessage(`সরি বস, ${name} কে আবার এড করতে পারলাম না। 
-সম্ভবত উনি বটকে ব্লক করেছে অথবা তার প্রাইভেসি সেটিংসের কারণে এড করা যায় না। 
-\n──────꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭─────`, event.threadID)
-   } else api.sendMessage(`শোন, ${name}, এই গ্রুপ হইলো গ্যাং!
-এখান থেকে যাইতে হলে এডমিনের পারমিশন লাগে!
-তুই পারমিশন ছাড়া লিভ নিছোস – তোকে আবার মাফিয়া স্টাইলে এড দিলাম।
-\n──────꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭─────`, event.threadID);
-  })
- }
-}
+module.exports.run = async ({ event, api, Threads, Users }) => {
+  try {
+    const data = (await Threads.getData(event.threadID)).data || {};
+
+    if (data.antiout === false) return;
+
+    const leftID = event.logMessageData?.leftParticipantFbId;
+    if (!leftID) return;
+
+    if (leftID === api.getCurrentUserID()) return;
+
+    const name =
+      global.data.userName.get(leftID) ||
+      await Users.getNameUser(leftID);
+
+    // শুধু self-leave ধরবে
+    if (event.author !== leftID) return;
+
+    const msg = `╭─━━━━━━━━━━━━━━━─╮
+  ⚠️ 𝐀𝐍𝐓𝐈 𝐎𝐔𝐓 𝐀𝐂𝐓𝐈𝐕𝐀𝐓𝐄𝐃
+╰─━━━━━━━━━━━━━━━─╯
+
+👤 ইউজার: ${name}
+
+😎 এই গ্রুপটা সহজ না!
+❌ পারমিশন ছাড়া কেউ leave করতে পারবে না
+
+🔄 তোমাকে আবার গ্রুপে add করা হলো
+💀 Next time careful থাকো boss!`;
+
+    // 🎧 Voice (Google TTS)
+    const voice = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${encodeURIComponent(
+      `${name} তুমি এই গ্রুপ থেকে যেতে পারবে না। তোমাকে আবার যুক্ত করা হলো।`
+    )}`;
+
+    // আবার add করবে
+    api.addUserToGroup(leftID, event.threadID, (err) => {
+      if (err) {
+        return api.sendMessage(
+          `❌ ${name} কে আবার add করা গেল না।
+সম্ভবত privacy বা block issue আছে।`,
+          event.threadID
+        );
+      }
+
+      api.sendMessage(
+        {
+          body: msg,
+          attachment: await global.utils.getStreamFromURL(voice)
+        },
+        event.threadID
+      );
+    });
+
+  } catch (e) {
+    console.log("Antiout error:", e);
+  }
+};
